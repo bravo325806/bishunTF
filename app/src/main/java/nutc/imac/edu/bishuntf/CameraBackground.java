@@ -16,7 +16,9 @@ public class CameraBackground extends View{
     private int measureHeight, measureWidth;
     private Paint paint;
     private int deviation;
-    private Double percent=50.0;
+    private Double percent=0.0;
+    private Double x1,x2;
+    private Double y1,y2;
     public CameraBackground(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         paint=new Paint();
@@ -42,11 +44,36 @@ public class CameraBackground extends View{
         canvas.drawRect((measureWidth*7)/8-Math.round(deviation*(percent/100)),measureWidth/8+Math.round(deviation*(percent/100)),measureWidth,(measureWidth*7)/8-Math.round(deviation*(percent/100)),paint);
         //下面
         canvas.drawRect(0,(measureWidth*7)/8-Math.round(deviation*(percent/100)),measureWidth,measureHeight,paint);
+
+        x1=Double.valueOf(measureWidth/8+Math.round(deviation*(percent/100)));
+        x2=Double.valueOf((measureWidth*7)/8-Math.round(deviation*(percent/100)));
+        y1=Double.valueOf(measureWidth/8+Math.round(deviation*(percent/100)));
+        y2=Double.valueOf((measureWidth*7)/8-Math.round(deviation*(percent/100)));
     }
     public Double getPercent(){
         return percent;
     }
-    public void setPercent(Double percent){
-        this.percent=percent;
+    public void setPercent(boolean bool){
+        if(bool){
+            if(percent>0){
+                percent--;
+            }
+        }else{
+            if (percent<100.0){
+                percent++;
+            }
+        }
+    }
+    public Double getX1(){
+        return x1;
+    }
+    public Double getX2(){
+        return x2;
+    }
+    public Double getY1(){
+        return y1;
+    }
+    public Double getY2(){
+        return y2;
     }
 }

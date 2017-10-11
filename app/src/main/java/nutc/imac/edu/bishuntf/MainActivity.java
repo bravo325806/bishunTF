@@ -5,17 +5,14 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -30,7 +27,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -42,11 +38,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
-import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Toast;
 
 import java.io.File;
@@ -63,6 +58,11 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity
         implements View.OnClickListener {
+
+    private String imageip;
+    private String apiip;
+    private float oldDist = 1f;
+
     private static final int PHOTO_REQUEST_CUT=77;
 
     private CameraBackground cameraBackground;
@@ -406,6 +406,8 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.picture).setOnClickListener(this);
+        imageip=getIntent().getStringExtra("imageip");
+        apiip=getIntent().getStringExtra("apiip");
         cameraBackground= (CameraBackground) findViewById(R.id.rect);
         mTextureView = (AutoFitTextureView) findViewById(R.id.texture);
         mFile = new File(this.getExternalFilesDir(null), "pic.jpg");
@@ -804,7 +806,7 @@ public class MainActivity extends AppCompatActivity
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    showToast("Saved: " + mFile);
+//                    showToast("Saved: " + mFile);
                     Log.d(TAG, mFile.toString());
                     unlockFocus();
                     intentCamera();
@@ -959,13 +961,47 @@ public class MainActivity extends AppCompatActivity
                     .create();
         }
     }
-    
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_POINTER_DOWN:
+                oldDist = getFingerSpacing(event);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if(event.getPointerCount()==2){
+                    float newDist = getFingerSpacing(event);
+                    if (newDist > oldDist) {
+                        cameraBackground.setPercent(true);
+                        cameraBackground.invalidate();
+                    } else if (newDist < oldDist) {
+                        cameraBackground.setPercent(false);
+                        cameraBackground.invalidate();
+                    }
+                    oldDist = newDist;
+                }
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+    private static float getFingerSpacing(MotionEvent event) {
+
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
+    }
     private void intentCamera(){
         Intent intent=new Intent(this,CameraFinishActivity.class);
         intent.putExtra("file",mFile);
         intent.putExtra("width",cameraBackground.getWidth());
         intent.putExtra("height",cameraBackground.getHeight());
         intent.putExtra("percent",cameraBackground.getPercent());
+        intent.putExtra("x1",cameraBackground.getX1());
+        intent.putExtra("x2",cameraBackground.getX2());
+        intent.putExtra("y1",cameraBackground.getY1());
+        intent.putExtra("y2",cameraBackground.getY2());
+        intent.putExtra("imageip",imageip);
+        intent.putExtra("apiip",apiip);
         startActivity(intent);
     }
 }
