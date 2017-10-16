@@ -27,6 +27,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -62,9 +63,9 @@ public class MainActivity extends AppCompatActivity
     private String imageip;
     private String apiip;
     private float oldDist = 1f;
-
+    private int type=0;
     private static final int PHOTO_REQUEST_CUT=77;
-
+    public static final int FINISH_REQUEST=456;
     private CameraBackground cameraBackground;
     /**
      * Conversion from screen rotation to JPEG orientation.
@@ -406,6 +407,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.picture).setOnClickListener(this);
+        findViewById(R.id.album).setOnClickListener(this);
         imageip=getIntent().getStringExtra("imageip");
         apiip=getIntent().getStringExtra("apiip");
         cameraBackground= (CameraBackground) findViewById(R.id.rect);
@@ -422,10 +424,12 @@ public class MainActivity extends AppCompatActivity
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
-        if (mTextureView.isAvailable()) {
-            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
-        } else {
-            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+        if(type!=1){
+            if (mTextureView.isAvailable()) {
+                openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+            } else {
+                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+            }
         }
     }
 
@@ -862,6 +866,10 @@ public class MainActivity extends AppCompatActivity
                 takePicture();
                 break;
             }
+            case R.id.album: {
+                openAldum();
+                break;
+            }
         }
     }
 
@@ -990,7 +998,27 @@ public class MainActivity extends AppCompatActivity
         float y = event.getY(0) - event.getY(1);
         return (float) Math.sqrt(x * x + y * y);
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode==777) {
+            type=1;
+            Uri uri = data.getData();
+            Log.e("uri", uri.toString());
+            Intent intent=new Intent(this,CameraFinishActivity.class);
+            intent.putExtra("uri",uri);
+            intent.putExtra("type",type);
+            intent.putExtra("imageip",imageip);
+            intent.putExtra("apiip",apiip);
+            startActivityForResult(intent,FINISH_REQUEST);
+        }else if(requestCode==FINISH_REQUEST){
+            type=0;
+        }
+    }
+
     private void intentCamera(){
+        type=0;
         Intent intent=new Intent(this,CameraFinishActivity.class);
         intent.putExtra("file",mFile);
         intent.putExtra("width",cameraBackground.getWidth());
@@ -1002,6 +1030,13 @@ public class MainActivity extends AppCompatActivity
         intent.putExtra("y2",cameraBackground.getY2());
         intent.putExtra("imageip",imageip);
         intent.putExtra("apiip",apiip);
-        startActivity(intent);
+        intent.putExtra("type",type);
+        startActivityForResult(intent,FINISH_REQUEST);
+    }
+    private void openAldum(){
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(intent, 777);
     }
 }

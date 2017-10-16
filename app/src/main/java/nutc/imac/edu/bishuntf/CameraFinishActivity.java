@@ -1,5 +1,6 @@
 package nutc.imac.edu.bishuntf;
 
+import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -20,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  * Created by cheng on 2017/9/18.
@@ -38,34 +40,45 @@ public class CameraFinishActivity extends AppCompatActivity implements View.OnCl
     private Double squarey2;
     private String imageip;
     private String apiip;
+    private Uri uri;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
         ruler=new Ruler(this);
         init();
-
     }
     private void init(){
         findView();
-        setImage();
     }
     private void findView(){
         findViewById(R.id.submit).setOnClickListener(this);
         findViewById(R.id.cancel).setOnClickListener(this);
         imageView= (ImageView) findViewById(R.id.image);
-        file= (File) getIntent().getSerializableExtra("file");
-        width=Double.valueOf(getIntent().getIntExtra("width",0));
-        height=Double.valueOf(getIntent().getIntExtra("height",0));
-        squarex1=getIntent().getDoubleExtra("x1",0);
-        squarex2=getIntent().getDoubleExtra("x2",0);
-        squarey1=getIntent().getDoubleExtra("y1",0);
-        squarey2=getIntent().getDoubleExtra("y2",0);
-        percent=getIntent().getDoubleExtra("percent",0);
-        imageip=getIntent().getStringExtra("imageip");
-        apiip=getIntent().getStringExtra("apiip");
+        RelativeLayout.LayoutParams params=new RelativeLayout.LayoutParams(ruler.getW(70),ruler.getW(70));
+        params.addRule(RelativeLayout.CENTER_IN_PARENT);
+        imageView.setLayoutParams(params);
+        if(getIntent().getIntExtra("type",0)==0){
+            file= (File) getIntent().getSerializableExtra("file");
+            width=Double.valueOf(getIntent().getIntExtra("width",0));
+            height=Double.valueOf(getIntent().getIntExtra("height",0));
+            squarex1=getIntent().getDoubleExtra("x1",0);
+            squarex2=getIntent().getDoubleExtra("x2",0);
+            squarey1=getIntent().getDoubleExtra("y1",0);
+            squarey2=getIntent().getDoubleExtra("y2",0);
+            percent=getIntent().getDoubleExtra("percent",0);
+            imageip=getIntent().getStringExtra("imageip");
+            apiip=getIntent().getStringExtra("apiip");
+            setImageZero();
+        }else if (getIntent().getIntExtra("type",1)==1){
+            uri=getIntent().getParcelableExtra("uri");
+            imageip=getIntent().getStringExtra("imageip");
+            apiip=getIntent().getStringExtra("apiip");
+            setImageOne();
+        }
+
     }
-    private void setImage(){
+    private void setImageZero(){
         Matrix matrix = new Matrix();
         matrix.postRotate(0);
         Bitmap myBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
@@ -83,10 +96,18 @@ public class CameraFinishActivity extends AppCompatActivity implements View.OnCl
         endBitmap=Bitmap.createBitmap(rotate,x1.intValue(),y1.intValue(),width1.intValue(),height1.intValue(),matrix,true);
         Log.e("width",endBitmap.getWidth()+"");
         Log.e("height",endBitmap.getHeight()+"");
-        RelativeLayout.LayoutParams params=new RelativeLayout.LayoutParams(ruler.getW(70),ruler.getW(70));
-        params.addRule(RelativeLayout.CENTER_IN_PARENT);
-        imageView.setLayoutParams(params);
         imageView.setImageBitmap(endBitmap);
+    }
+    private void setImageOne(){
+
+        try {
+            ContentResolver cr = this.getContentResolver();
+            endBitmap = BitmapFactory.decodeStream(cr.openInputStream(uri));
+            imageView.setImageBitmap(endBitmap);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
     }
     @Override
     public void onClick(View view) {
@@ -95,10 +116,12 @@ public class CameraFinishActivity extends AppCompatActivity implements View.OnCl
             fileAsync.execute();
 
         }else if(view.getId()==R.id.cancel){
+            setResult(MainActivity.FINISH_REQUEST);
             finish();
         }
     }
     public void imageIdentification(String o){
+        Log.e(o,o);
         Bundle bundle=new Bundle();
         try {
             JSONObject jsonObject=new JSONObject(o);
@@ -113,6 +136,7 @@ public class CameraFinishActivity extends AppCompatActivity implements View.OnCl
         }
     }
     public void uploadFinish(){
+        setResult(MainActivity.FINISH_REQUEST);
         finish();
     }
 
